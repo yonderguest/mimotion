@@ -8,17 +8,23 @@ mimotion 是一个用 GitHub Actions 自动运行的 Zepp Life / 小米运动步
 
 > 请只操作你自己的账号。账号、密码、AES_KEY 都是敏感信息，不要写进公开代码，不要发到截图、issue 或日志里。
 
-## 一句话流程
+## 先看这个
 
-新手按这个顺序做：
+第一次用，只记住这条路线：
 
-1. Fork 仓库。
-2. 打开配置生成器。
-3. 把配置生成器里的内容，一个一个填到 GitHub Secrets / Variables。
-4. 去 Actions 手动运行 `check_config`。
-5. 再运行 `dry_run`。
-6. 没问题后运行 `run`。
-7. 最后把 `DRY_RUN` 改成 `False`，以后就会定时自动运行。
+```text
+Fork 仓库
+-> 打开配置生成器
+-> 把 Secrets 和 Variables 填到 GitHub
+-> Actions 里运行 check_config
+-> Actions 里运行 dry_run
+-> Actions 里运行 run
+-> 把 DRY_RUN 改成 False
+```
+
+`check_config` 只检查配置。  
+`dry_run` 会登录，但不会提交步数。  
+`run` 才是真正提交步数。
 
 ## 不要直接点开 HTML 文件
 
@@ -28,13 +34,13 @@ mimotion 是一个用 GitHub Actions 自动运行的 Zepp Life / 小米运动步
 
 [打开配置生成器](https://raw.githack.com/shenyibo666/mimotion/master/config-generator.html)
 
-打开后应该看到表单页面。如果还是看到代码，就换一种方式：把 `config-generator.html` 下载到电脑，然后双击打开。
+打开后应该看到表单页面。如果还是看到代码，就把 `config-generator.html` 下载到电脑，然后双击打开。
 
 配置生成器不会上传你的账号密码。它只在浏览器里帮你生成要复制的内容。
 
-## 先弄清楚两个 GitHub 页面
+## 两个 GitHub 页面
 
-后面会用到两个设置页面：
+后面会反复用到两个页面：`Secrets` 和 `Variables`。
 
 ### Secrets 页面
 
@@ -49,8 +55,8 @@ Secrets 用来放敏感信息，比如账号、密码、AES_KEY。
 添加方法：
 
 1. 点 `New repository secret`。
-2. `Name` 填变量名，比如 `ZEPP_USER`。
-3. `Secret` 填变量值，比如你的 Zepp Life 账号。
+2. `Name` 填变量名，例如 `ZEPP_USER`。
+3. `Secret` 填变量值，例如你的 Zepp Life 账号。
 4. 点 `Add secret`。
 
 ### Variables 页面
@@ -66,13 +72,13 @@ Variables 用来放普通配置，比如步数范围、是否试运行。
 添加方法：
 
 1. 点 `New repository variable`。
-2. `Name` 填变量名，比如 `MIN_STEP`。
-3. `Value` 填变量值，比如 `18000`。
+2. `Name` 填变量名，例如 `MIN_STEP`。
+3. `Value` 填变量值，例如 `18000`。
 4. 点 `Add variable`。
 
 简单说：
 
-- Secrets 填账号密码这类不能公开的东西。
+- Secrets 填账号、密码、AES_KEY 这类不能公开的东西。
 - Variables 填步数、模式、开关这类普通配置。
 
 ## 第一步：Fork 仓库
@@ -118,7 +124,7 @@ PushPlus Token：留空
 - 新手模式：Secrets
 - 新手模式：Variables
 
-接下来就是把这两张表里的内容填到 GitHub。
+表格左边是 GitHub 里的 `Name`，右边是 GitHub 里的 `Secret` 或 `Value`。每一行都要单独添加一次。
 
 ## 第三步：填写 Secrets
 
@@ -169,7 +175,7 @@ Secret: 配置生成器生成的 AES_KEY
 
 这个可以先不填。
 
-PushPlus 只是微信通知工具，用来通知你脚本运行成功或失败。它不是微信步数同步。不配置它也能刷步数。
+PushPlus 只是微信通知工具，用来通知脚本运行成功或失败。它不是微信步数同步。不配置它也能刷步数。
 
 如果以后想要运行结果通知，再添加：
 
@@ -177,6 +183,13 @@ PushPlus 只是微信通知工具，用来通知你脚本运行成功或失败�
 Name: PUSH_PLUS_TOKEN
 Secret: 你的 PushPlus token
 ```
+
+PushPlus token 来源：
+
+1. 打开 [PushPlus 官网](https://www.pushplus.plus/)。
+2. 用微信扫码登录。
+3. 找到自己的用户 token。
+4. 复制 token，填到 `PUSH_PLUS_TOKEN` 的 `Secret` 里。
 
 ## 第四步：填写 Variables
 
@@ -200,7 +213,7 @@ Settings -> Secrets and variables -> Actions -> Variables
 
 `FIXED_STEP` 可以先不填。只有固定步数模式才需要它。
 
-如果你以后想固定每天刷 20000 步，改成：
+如果以后想固定每天刷到 20000 步，改成：
 
 ```text
 STEP_MODE=fixed
@@ -339,7 +352,7 @@ Disable workflow
 
 日志就是 Actions 里的运行记录。它不影响后续使用，不清理也没关系。
 
-如果你想删除某一条记录：
+如果想删除某一条记录：
 
 1. 进入 `Actions`。
 2. 点一条历史运行记录。
@@ -352,11 +365,20 @@ GitHub 没有很方便的一键清空按钮，一般不用专门清理。
 
 新手模式也支持多账号。
 
-在 Secrets 里这样填：
+在 GitHub 的 Secrets 页面里，不要把整句 `ZEPP_USER=...` 填进去。要分开填：
+
+第一个 Secret：
 
 ```text
-ZEPP_USER=账号1#账号2#账号3
-ZEPP_PASSWORD=密码1#密码2#密码3
+Name: ZEPP_USER
+Secret: 账号1#账号2#账号3
+```
+
+第二个 Secret：
+
+```text
+Name: ZEPP_PASSWORD
+Secret: 密码1#密码2#密码3
 ```
 
 注意三点：
@@ -416,7 +438,20 @@ PushPlus 推送：
 
 它只是通知你“成功了”或“失败了”。不配置 PushPlus，不影响刷步数。
 
-所以第一次使用时，`PUSH_PLUS_TOKEN` 可以留空。
+如果配置了 PushPlus，每次 `dry_run`、`run` 或定时任务结束后，会推送类似：
+
+```text
+执行账号总数：1，成功：1，失败：0
+账号：181****.com 刷步数成功，结果：修改步数：xxxxx，接口返回：success
+```
+
+如果设置了 Variable：
+
+```text
+PUSH_PLUS_HOUR=22
+```
+
+就只会在北京时间 22 点这个小时推送。不设置则每次运行结束都推送。
 
 ## 步数模式
 
@@ -434,7 +469,7 @@ MAX_STEP=25000
 
 ### fixed：固定模式
 
-如果你想每天固定刷到 20000 步：
+如果想每天固定刷到 20000 步：
 
 ```text
 STEP_MODE=fixed
@@ -447,7 +482,7 @@ FIXED_STEP=20000
 
 新手不用看这一节。
 
-如果你熟悉 JSON，可以只配置一个 Secret：
+如果熟悉 JSON，可以只配置一个 Secret：
 
 ```text
 CONFIG
