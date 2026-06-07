@@ -208,7 +208,7 @@
         </div>
         <div class="step">
           <strong>3. 去 GitHub 填写</strong>
-          <span>用快捷入口打开 Secrets、Variables 和 Actions。</span>
+          <span>表格里的名称填到 Name，右边的值填到 Secret 或 Value。</span>
         </div>
       </div>
     </div>
@@ -226,10 +226,12 @@
           <div class="field">
             <label for="user">Zepp Life 账号</label>
             <input id="user" autocomplete="username" placeholder="邮箱或手机号">
+            <div class="hint">多个账号用 # 分隔，例如 a@example.com#b@example.com。</div>
           </div>
           <div class="field">
             <label for="password">Zepp Life 密码</label>
             <input id="password" type="password" autocomplete="current-password" placeholder="密码">
+            <div class="hint">多个密码也用 # 分隔，顺序要和账号一致。</div>
           </div>
         </div>
 
@@ -300,10 +302,11 @@
         </div>
 
         <div class="notice">
-          新手只需要看“Secrets”和“Variables”两张表。高级模式 CONFIG 可以先不用管。
+          新手只需要看“Secrets”和“Variables”两张表。每一行都要在 GitHub 里单独新增一次：左边填 Name，右边填 Secret 或 Value。高级模式 CONFIG 可以先不用管。
         </div>
 
         <h3>新手模式：Secrets</h3>
+        <p class="hint">打开 GitHub 的 Secrets 页面，点 New repository secret。名称填左列，Secret 填右列。</p>
         <table>
           <thead>
             <tr>
@@ -315,6 +318,7 @@
         </table>
 
         <h3>新手模式：Variables</h3>
+        <p class="hint">打开 GitHub 的 Variables 页面，点 New repository variable。Name 填左列，Value 填右列。</p>
         <table>
           <thead>
             <tr>
