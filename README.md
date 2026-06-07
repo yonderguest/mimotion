@@ -8,6 +8,20 @@ mimotion 是一个用 GitHub Actions 自动运行的 Zepp Life / 小米运动步
 
 > 请只操作你自己的账号。账号、密码、AES_KEY 都是敏感信息，不要写进公开代码，也不要发到截图、issue 或日志里。
 
+## 先看这里：不要直接点开 HTML 文件
+
+如果你在 GitHub 里点击 `config-generator.html`，看到的是满屏代码，这是正常的。GitHub 默认把 HTML 文件当源码展示，不会直接当网页打开。
+
+正确打开方式有两种：
+
+1. 直接打开在线配置生成器：
+
+   [打开配置生成器](https://raw.githack.com/shenyibo666/mimotion/master/config-generator.html)
+
+2. 把 `config-generator.html` 下载到电脑，然后双击打开。
+
+推荐先用第一种。打开后你会看到一个表单页面，不需要看代码。
+
 ## 现在的使用方式
 
 这个版本把新手配置尽量做简单了：
@@ -52,7 +66,7 @@ GitHub Actions 不是一台一直在线的服务器。它更像 GitHub 临时借
 第一次用可以按这个顺序来：
 
 1. Fork 仓库。
-2. 打开 `config-generator.html`，填账号和步数范围。
+2. 打开上面的“配置生成器”，填账号和步数范围。
 3. 把生成的内容填到 GitHub 的 Secrets / Variables。
 4. 打开 Actions，运行 `MiMotion`，模式选 `check_config`。
 5. 再运行一次，模式选 `dry_run`。
@@ -75,7 +89,15 @@ GitHub Actions 不是一台一直在线的服务器。它更像 GitHub 临时借
 config-generator.html
 ```
 
-你可以直接在电脑上双击打开。这个页面只在你的浏览器里运行，不会上传账号密码。
+不要在 GitHub 里直接点文件名看，那样看到的是源码。
+
+推荐直接打开这个链接：
+
+[打开配置生成器](https://raw.githack.com/shenyibo666/mimotion/master/config-generator.html)
+
+也可以把 `config-generator.html` 下载到电脑，再双击打开。
+
+这个页面只在你的浏览器里运行，不会上传账号密码。
 
 它会生成两类内容：
 
@@ -83,6 +105,12 @@ config-generator.html
 - `Variables`：适合放步数范围、运行模式、间隔时间等普通配置。
 
 页面里也可以生成 `CONFIG` JSON。新手不用管这个，直接用 Secrets / Variables 就行。
+
+在配置生成器里，你只需要做三件事：
+
+1. 左边填 Zepp Life 账号、密码、步数范围。
+2. 点 `生成配置`。
+3. 右边复制 Secrets / Variables 到 GitHub。
 
 ## 第三步：配置 GitHub Secrets
 
@@ -105,6 +133,8 @@ Settings -> Secrets and variables -> Actions -> Repository secrets
 | 名称 | 说明 |
 | --- | --- |
 | `PUSH_PLUS_TOKEN` | PushPlus token |
+
+PushPlus 只是“运行结果通知”，不是微信步数同步。不配置它也能刷步数。新手可以先留空，等脚本能正常运行后再考虑是否需要微信通知。
 
 `AES_KEY` 可以用配置生成器生成，也可以自己写 16 位字符串，例如：
 
@@ -164,6 +194,17 @@ FIXED_STEP=20000
 2. 成功后跑 `dry_run`。
 3. 再跑 `run`。
 
+如果你没找到按钮，按这个顺序点：
+
+1. 打开你的 GitHub 仓库。
+2. 点顶部的 `Actions`。
+3. 左侧点 `MiMotion`。
+4. 右侧点 `Run workflow`。
+5. 在 `mode` 下拉框里选一个模式。
+6. 再点绿色的 `Run workflow`。
+
+运行后页面会出现一条新的记录。点进去，再点 `build`，就能看到日志。
+
 如果 `dry_run` 日志里看到：
 
 ```text
@@ -174,6 +215,45 @@ DRY_RUN 已开启：会验证登录并计算步数，但不会提交步数
 说明基本配置没问题。
 
 正式运行成功后，可以把 Variable 里的 `DRY_RUN` 改成 `False`，让定时任务以后正常提交。
+
+## 如何停止运行
+
+有三种停止方式，按需要选一种。
+
+### 停止正在运行的一次任务
+
+如果 Actions 正在跑，想马上停掉：
+
+1. 进入仓库 `Actions`。
+2. 点正在运行的那条记录。
+3. 右上角点 `Cancel workflow`。
+4. 确认取消。
+
+### 暂时不刷步数，但保留定时任务
+
+把 Variable 里的：
+
+```text
+DRY_RUN=False
+```
+
+改成：
+
+```text
+DRY_RUN=True
+```
+
+这样以后定时任务还会运行，但只检查登录和计算步数，不会提交步数。
+
+### 完全停止自动运行
+
+进入仓库：
+
+```text
+Actions -> MiMotion -> 右上角 ... -> Disable workflow
+```
+
+禁用后，定时任务不会再自动运行。以后想恢复，再点 `Enable workflow`。
 
 ## 默认每天几点运行
 
@@ -318,6 +398,19 @@ python main.py --dry-run
 `config-generator.html` 也不会把账号密码发到服务器。它只是一个本地网页，负责帮你生成要复制的内容。
 
 ## 常见问题
+
+### PushPlus 是什么？必须配置吗？
+
+不是必须。
+
+PushPlus 是微信通知工具。配置它以后，脚本运行成功或失败时，可以给你推送一条微信通知。
+
+它和“微信运动步数同步”不是一回事：
+
+- 微信运动步数同步：Zepp Life 把步数同步给微信运动。
+- PushPlus 推送：脚本把运行结果通知你。
+
+新手可以先不配置 `PUSH_PLUS_TOKEN`。
 
 ### Actions 成功了，但微信步数没变？
 

@@ -102,6 +102,22 @@
       border-radius: 6px;
       margin-bottom: 16px;
     }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 18px 0 0;
+    }
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f6f8fa;
+    }
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+    }
     .warn {
       border-left-color: var(--danger);
       background: #fff1f0;
@@ -169,7 +185,8 @@
     }
     @media (max-width: 860px) {
       .grid,
-      .row {
+      .row,
+      .steps {
         grid-template-columns: 1fr;
       }
     }
@@ -180,6 +197,20 @@
     <div class="wrap hero">
       <h1>mimotion 配置生成器</h1>
       <p>在这个页面填信息，然后把生成的内容复制到 GitHub Secrets / Variables。页面不会上传你的账号密码，所有内容只在当前浏览器里生成。</p>
+      <div class="steps">
+        <div class="step">
+          <strong>1. 填信息</strong>
+          <span>填 Zepp Life 账号、密码和步数范围。</span>
+        </div>
+        <div class="step">
+          <strong>2. 点生成配置</strong>
+          <span>右侧会出现要复制到 GitHub 的内容。</span>
+        </div>
+        <div class="step">
+          <strong>3. 去 GitHub 填写</strong>
+          <span>用快捷入口打开 Secrets、Variables 和 Actions。</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -188,7 +219,7 @@
       <section>
         <h2>填写信息</h2>
         <div class="notice warn">
-          不要把真实账号密码提交到仓库。推荐把账号密码放在 GitHub Secrets 里。
+          如果你是在 GitHub 页面里看到满屏代码，说明打开方式不对。请用 README 里的“在线打开配置生成器”链接，或者把本文件下载到电脑后双击打开。
         </div>
 
         <div class="row">
@@ -240,14 +271,15 @@
         </div>
 
         <div class="field">
-          <label for="pushPlusToken">PushPlus Token</label>
-          <input id="pushPlusToken" placeholder="不需要推送就留空">
+          <label for="pushPlusToken">PushPlus Token（可选）</label>
+          <input id="pushPlusToken" placeholder="不懂这个就留空，不影响刷步数">
+          <div class="hint">这是运行结果的微信通知，不是微信步数同步。留空就不会推送通知。</div>
         </div>
 
         <div class="field">
           <label for="repo">你的仓库地址</label>
           <input id="repo" placeholder="https://github.com/你的用户名/mimotion">
-          <div class="hint">填了以后，下方会生成 GitHub 设置入口。</div>
+          <div class="hint">填了以后，右侧会生成 GitHub 设置入口。</div>
         </div>
 
         <div class="field">
@@ -265,6 +297,10 @@
         <h2>复制到 GitHub</h2>
         <div id="links" class="notice">
           填写仓库地址后，这里会显示快捷入口。
+        </div>
+
+        <div class="notice">
+          新手只需要看“Secrets”和“Variables”两张表。高级模式 CONFIG 可以先不用管。
         </div>
 
         <h3>新手模式：Secrets</h3>
