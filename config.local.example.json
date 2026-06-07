@@ -1,0 +1,15 @@
+{
+  "USER": "your_email@example.com",
+  "PWD": "your_password",
+  "MIN_STEP": "18000",
+  "MAX_STEP": "25000",
+  "STEP_MODE": "random",
+  "FIXED_STEP": "",
+  "PUSH_PLUS_TOKEN": "",
+  "PUSH_PLUS_HOUR": "",
+  "PUSH_PLUS_MAX": "30",
+  "SLEEP_GAP": "5",
+  "USE_CONCURRENT": "False",
+  "DRY_RUN": "True",
+  "AES_KEY": "1234567890abcdef"
+}

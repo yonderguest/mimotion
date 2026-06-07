@@ -1,205 +1,430 @@
 # mimotion
 
-![ 刷步数](https://github.com/TonyJiangWJ/mimotion/actions/workflows/run.yml/badge.svg)
-[![GitHub forks](https://img.shields.io/github/forks/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/forks)
-[![GitHub stars](https://img.shields.io/github/stars/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues/TonyJiangWJ/mimotion?style=flat-square)](https://github.com/TonyJiangWJ/mimotion/issues)
+mimotion 是一个用 GitHub Actions 自动运行的 Zepp Life / 小米运动步数同步脚本。
 
+它做的事情很简单：到点以后，GitHub 会临时启动一台运行环境，拉取这个仓库的代码，执行 `python main.py`。脚本会读取你配置好的 Zepp Life 账号，登录后把当天步数提交到 Zepp/华米接口。如果你的 Zepp Life 已经绑定了微信运动、支付宝运动等第三方平台，后续步数就有机会被这些平台同步过去。
 
-## 小米运动自动刷步数（支持邮箱登录）
+换句话说，它不是直接修改微信数据，也不需要你自己买服务器。它只是把 Python 脚本交给 GitHub Actions 定时执行。
 
-- 小米运动自动刷步数，小米运动APP现已改名 `Zepp Life`，为方便说明，后面还是称其为小米运动。但下载注册时请搜索 `Zepp Life`。
-- 注册账号后建议先去以下网站测试自己的账号刷步数是否正常（注意这些网站只是网络上收集的，不保证安全和有效性）：
-  - https://steps.hubp.de/ 提示密码错误时可以多试几次 或者切换网络
-  - https://bs.yanwan.store/run4/ 验证码001或998
-- 如无法刷步数同步到支付宝等，建议重新注册一个新的。
+> 使用前请确认你只操作自己的账号。账号、密码、PAT、AES_KEY 都是敏感信息，不要写进公开代码，也不要发到 issue、截图或日志里。
 
-### 如果觉得好用，请给一个免费的[star](https://github.com/TonyJiangWJ/mimotion/)吧
+## 这个项目适合谁
 
-## Github Actions 部署指南
+如果你希望每天自动给自己的 Zepp Life / 小米运动账号同步一个步数，并且愿意花几分钟配置 GitHub Actions，这个项目就够用了。
 
-### 一、Fork 此仓库，然后创建token
+如果你是第一次接触 GitHub Actions，也没关系。下面的教程会按“先理解，再配置，再试运行”的顺序来写。
 
-#### 创建小权限的限时token，推荐
+## 它大概怎么工作
 
-- 前往[https://github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta)创建个人token，建议使用Fine-grained tokens，避免token泄露导致不必要的麻烦。
-- 填写token的名称，用于自己区别干嘛用的。
-- 选择token有效期，最大时长为1年。一年后需要重新续期或重建，唯一缺点
-- `Repository access` 选择 `Only select repositories` 勾选自己fork后的仓库，下拉可搜索：输入 mimotion 进行检索
-- 点击 `Repository permissions` 展开菜单，并勾选以下四个权限即可，其他的可以不勾选
-  - `Actions` Access: `Read and write` 用于获取Actions的权限
-  - `Contents` Access: `Read and write` 用于更新定时任务和日志文件的权限
-  - `Metadata` Access: `Read-only` 这个自带的必选
-  - `Workflows` Access: `Read and write` 获取用于更新 `.github/workflow` 下文件的权限
+整个过程可以这样理解：
 
-#### 你也可以创建更大权限的不限时token
+```text
+GitHub Actions 定时触发
+-> GitHub 启动临时 Ubuntu 环境
+-> 拉取本仓库代码
+-> 安装 Python 依赖
+-> 读取 GitHub Secrets 里的 CONFIG / AES_KEY
+-> 登录 Zepp Life / 小米运动
+-> 计算本次步数
+-> 提交步数到 Zepp/华米接口
+-> 保存加密 token，减少下次重复登录
+-> 随机调整下一次运行的分钟数
+```
 
-- 建议使用上面的小权限token，这个token无法指定某一个仓库的权限，也就是token一旦泄露将有可能导致其他人直接自由访问和修改你的所有仓库代码
-- 前往[https://github.com/settings/tokens/new](https://github.com/settings/tokens/new)创建
-- 填写token名称，选择有效期
-- `Select scopes` 勾选 `repo` 和 `workflow` 即可
+GitHub Actions 的运行环境是临时的，不是一直在线的服务器。每次任务开始时 GitHub 分配一台机器，任务结束后机器就销毁。
 
-#### 创建完毕后点击最底下的 `Generate token` 即可生成token，复制token并自己保存一下以备后续使用，关闭当前页面后将无法再看到它。
+## 功能
 
-### 二、设置账号密码
+- 支持邮箱账号和中国手机号账号。
+- 支持多个账号。
+- 支持 GitHub Actions 定时运行。
+- 支持手动运行 workflow。
+- 支持 `DRY_RUN` 试运行，不真正提交步数。
+- 支持随机步数和固定步数。
+- 支持 AES 加密缓存登录 token。
+- 支持 PushPlus 推送运行结果。
+- 支持本地 `config.local.json` 调试。
+- 支持 `--check-config` 先检查配置。
 
-#### 前往仓库设置创建变量
+## 使用前准备
 
-- Settings-->Secrets and variables-->Actions-->New repository secret
-- 快捷跳转地址 [https://github.com/${你的github用户名}/mimotion/settings/secrets/actions](../../settings/secrets/actions)
-- 点击右侧的 `New repository secret` 即可添加Secret
+你需要准备这些东西：
 
-#### 添加名为 **PAT** 的Secret变量，值为第一步申请的token
+- 一个 GitHub 账号。
+- 一个已经能正常登录的 Zepp Life / 小米运动账号。
+- Fork 后的 mimotion 仓库。
+- 一个 GitHub Personal Access Token，后文简称 `PAT`。
+- 一个 16 字节的 `AES_KEY`，用来加密保存 token。
 
-- `PAT` 的作用是拿来更新随机执行时间以及加密token数据的，为了保证正常使用，一定要配置正确。
+这里的 Zepp Life / 小米运动账号，不是“小米账号”的同义词。请使用能在 Zepp Life / 小米运动里登录的手机号或邮箱账号。
 
-#### 添加名为 **AES_KEY** 的Secret变量，请自行创建一个长度为16个字符的字符串作为密钥
+## 第一步：Fork 仓库
 
-- 注意：密钥不要用中文，长度一定要是16个字符，否则可能出错。
-- 如果你有多个账号，或者希望程序自动保存登录信息，就需要设置这个 `AES_KEY`。设置之后，程序会用这个密钥把各个账号的登录token信息加密保存起来。**请一定保管好你的密钥，不要泄露。**
-- 同时，请确保你已经正确配置了 PAT 密钥，否则程序无法自动保存和提交信息到仓库。
-- 第一次配置 `AES_KEY` 后，运行时可能会看到提示：“密钥不正确或者加密内容损坏 放弃token”，**这是正常现象**。因为原来加密文件用的是我的密钥，和你设置的不同，所以会提示不匹配。你直接忽略它，等程序运行完后，就会用你的新密钥生成一份新的加密文件，下次运行就正常了。
-- 配置 `AES_KEY` 后，每个人的仓库里面到会保存一份 `encrypted_tokens.data`。每次更新代码时，这个文件会被覆盖。**为了避免丢失你保存的信息，请在更新代码前备份这个文件**，等代码更新完，再把它放回仓库并提交，最后重新运行workflow。
+打开项目页面，点击右上角 `Fork`，把仓库复制到你自己的 GitHub 账号下。
 
-#### 添加名为 **CONFIG** 的Secret变量
+后面的所有设置，都在你 Fork 之后的仓库里完成。
 
-- 需要注意Secret变量是密文，提交后无法查看，只能删除或用新值更新，建议本地保存一下自己的配置数据方便后期修改。
-- CONFIG的内容：
+## 第二步：启用 GitHub Actions
 
-  ```json
-  {
-    "USER": "abcxxx@xx.com",
-    "PWD": "password",
-    "MIN_STEP": "18000",
-    "MAX_STEP": "25000",
-    "PUSH_PLUS_TOKEN": "",
-    "PUSH_PLUS_HOUR": "",
-    "PUSH_PLUS_MAX": "30",
-    "SLEEP_GAP": "5",
-    "USE_CONCURRENT": "False"
-  }
-  ```
+进入你自己的仓库，点击 `Actions`。
 
-  | 字段名             | 格式                                                                                              |
-  |-----------------|-------------------------------------------------------------------------------------------------|
-  | USER            | 小米运动登录账号，仅支持小米运动账号对应的手机号或邮箱，不支持小米账号                                                             |
-  | PWD             | 小米运动登录密码，仅支持小米运动账号对应的密码                                                                         |
-  | MIN_STEP        | 最小步数                                                                                            |
-  | MAX_STEP        | 最大步数，最大步数和最小步数随机范围随着时间线性增加，北京时间22点达到最大值                                                         |
-  | PUSH_PLUS_TOKEN | 推送加的个人token,申请地址[pushplus](https://www.pushplus.plus/push1.html)，工作流执行完成后推送每个账号的执行状态信息，如没有则不要填写 |
-  | PUSH_PLUS_HOUR  | 限制只在某个整点进行pushplus的推送，值为整数，比如设置21，则只在北京时间21点XX分执行时才进行pushplus的消息推送。如不设置或值非数字则每次执行后都会进行推送        |
-  | PUSH_PLUS_MAX   | 设置pushplus最大推送账号详情数，默认为30，超过30个账号将只推送概要信息：多少个成功多少个失败。因为数量太多会导致内容过长无法推送。具体最大值请自行调试               |
-  | SLEEP_GAP       | 多账号执行间隔，单位秒，如果账号比较多可以设置的短一点，默认为5秒                                                               |
-  | USE_CONCURRENT  | 是否使用多线程，实验性功能，未测试是否有效。账号多的可以试试，将它设置为True即可，启用后 `SLEEP_GAP` 将不再生效                                |
+如果 GitHub 提示你需要确认启用 workflow，点击确认即可。
 
-### 三、多账户设置(如用不上请忽略)
+本项目主要有两个 workflow：
 
-- 多账户请用 **#** 分割 然后保存到变量 **USER** 和 **PWD**
-- 理论上账户数量不受限制，但是实际要看github actions的资源和华米接口是否有限制，pushplus消息内容应该也有最大长度限制，反正具体上限请自行测试
+- `MiMotion`：真正执行登录、计算步数、提交步数。
+- `Random Cron`：在 `MiMotion` 成功后，随机修改下一次执行的分钟数。
 
-#### 例如
+第一次配置完成后，建议先手动运行 `MiMotion` 测试。
+
+## 第三步：创建 PAT
+
+`PAT` 的作用是让 GitHub Actions 有权限把运行中产生的文件提交回仓库，例如：
+
+- `encrypted_tokens.data`
+- `.github/workflows/run.yml`
+- `cron_change_time`
+
+推荐创建 Fine-grained token。
+
+创建位置：
+
+```text
+GitHub -> Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
+```
+
+建议权限：
+
+| 项目 | 建议设置 |
+| --- | --- |
+| Repository access | 只选择你的 mimotion 仓库 |
+| Actions | Read and write |
+| Contents | Read and write |
+| Metadata | Read-only |
+| Workflows | Read and write |
+
+创建完成后复制 token。这个 token 只会显示一次。
+
+## 第四步：配置 Secrets
+
+进入仓库：
+
+```text
+Settings -> Secrets and variables -> Actions -> Repository secrets
+```
+
+添加下面三个 Secret：
+
+| 名称 | 必填 | 说明 |
+| --- | --- | --- |
+| `CONFIG` | 是 | 项目运行配置，JSON 格式 |
+| `AES_KEY` | 推荐 | 16 字节密钥，用于加密缓存 token |
+| `PAT` | 是 | 允许 Actions 自动提交文件 |
+
+### AES_KEY
+
+`AES_KEY` 必须是 16 字节字符串，例如：
+
+```text
+1234567890abcdef
+```
+
+不要使用中文。长度不对时，脚本会跳过 token 缓存。
+
+### CONFIG
+
+第一次使用建议先开启 `DRY_RUN`：
 
 ```json
 {
-  "USER": "13800138000#13800138001",
-  "PWD": "abc123qwe#abcqwe2",
+  "USER": "abc@example.com",
+  "PWD": "your_password",
   "MIN_STEP": "18000",
   "MAX_STEP": "25000",
+  "STEP_MODE": "random",
   "PUSH_PLUS_TOKEN": "",
-  "PUSH_PLUS_HOUR": ""
+  "PUSH_PLUS_HOUR": "",
+  "PUSH_PLUS_MAX": "30",
+  "SLEEP_GAP": "5",
+  "USE_CONCURRENT": "False",
+  "DRY_RUN": "True"
 }
 ```
 
-#### 注意 **#** 分隔的账号和密码数量必须匹配，否则将跳过执行
+确认登录和配置都没问题后，再把 `DRY_RUN` 改成 `False`。
 
-### 四、自定义启动时间
+## 配置字段说明
 
-#### 两种方式自定义启动时间
+| 字段 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `USER` | 是 | 无 | Zepp Life / 小米运动账号 |
+| `PWD` | 是 | 无 | Zepp Life / 小米运动密码 |
+| `MIN_STEP` | 否 | `18000` | 随机模式下的目标最小步数 |
+| `MAX_STEP` | 否 | `25000` | 随机模式下的目标最大步数 |
+| `STEP_MODE` | 否 | `random` | 步数模式，支持 `random` 或 `fixed` |
+| `FIXED_STEP` | 固定模式必填 | 无 | 固定模式下提交的步数 |
+| `PUSH_PLUS_TOKEN` | 否 | 空 | PushPlus token，不填则不推送 |
+| `PUSH_PLUS_HOUR` | 否 | 空 | 只在北京时间指定整点推送 |
+| `PUSH_PLUS_MAX` | 否 | `30` | 推送里展示账号详情的最大账号数 |
+| `SLEEP_GAP` | 否 | `5` | 多账号非并发模式下的间隔秒数 |
+| `USE_CONCURRENT` | 否 | `False` | 多账号是否并发执行 |
+| `DRY_RUN` | 否 | `False` | 是否只登录和计算步数，不提交步数 |
 
-##### 1、添加名为 `CRON_HOURS` 的Variables变量 `Settings-->Secrets and variables-->Actions-->New repository variables` 注意不是Secret
-- 快捷跳转地址 [https://github.com/${你的github用户名}/mimotion/settings/variables/actions](../../settings/variables/actions)
-  - 填写自动执行的时间，单位为小时，此处需要设置UTC时间，例如设置 `0,2,4,6,8,14` 则会在北京时间 `8,10,12,14,16,22` 点触发执行
-- 添加完成后可以在Actions中手动触发：`Random Cron` 来触发替换，或者等下一次定时执行时它将会自动替换。
+## 多账号写法
 
-##### 2、编辑 **.github/workflows/run.yml** 中的cron表达式
-  - cron表达式格式如下: `分 小时 日期 月份 年份`
-  - github actions中执行时间为UTC时间，即**北京时间-8**，如果需要每天`8，10，12，14，16，22`点执行，则设置cron为`0 0,2,4,6,8,14 * * *`
-  ```yaml
-  on:
-    schedule:
-      - cron: '0 0,2,4,6,8,14 * * *'
-  ```
-  - **注意** 如果已添加 `CRON_HOURS` 变量，则修改此文件的cron表达式会失效，在下次执行 `Random Cron` 后表达式中小时的部分会被覆盖为 `CRON_HOURS` 配置的值
+多个账号用 `#` 分隔，密码也要用 `#` 分隔，并且数量必须一致。
 
-- 注意以上两种方式二选一即可，推荐直接使用方式1，变量值填写的是逗号分隔的数字，别乱填别的报错别找我！
-- github actions 0点为执行高峰，排队可能会延后一两小时才执行，建议直接从2开始
+```json
+{
+  "USER": "user1@example.com#user2@example.com",
+  "PWD": "password1#password2",
+  "MIN_STEP": "18000",
+  "MAX_STEP": "25000",
+  "STEP_MODE": "random",
+  "SLEEP_GAP": "8",
+  "USE_CONCURRENT": "False",
+  "DRY_RUN": "True"
+}
+```
 
-### 五、手动触发测试工作流
+如果账号和密码数量不一致，脚本会在启动时直接提示错误。
 
-- 前往Actions,左侧选择 `刷步数`，快捷链接：[https://github.com/${你的github用户名}/mimotion/actions/workflows/run.yml](../../actions/workflows/run.yml)
-- 新fork的仓库默认未启用工作流，进入Actions后点击 `I understand my workflows, go ahead and enable them` 启用，然后左侧选择 `刷步数` 之后，再点击 `enable workflow` 启用工作流。请确保开启工作流，否则不会定时执行。
-- 点击右侧的`Run workflow`触发执行，触发后刷新即可查看执行记录。验证是否正确配置并执行刷步数。
+## 步数怎么计算
 
-### 六、感谢列表
+### random：随机模式
 
-本项目基于 `https://github.com/xunichanghuan/mimotion(已被ban)` 和 [https://github.com/huangshihai/mimotion](https://github.com/huangshihai/mimotion) 项目修改，特此感谢
+默认是随机模式：
 
-新版本登录需要加密，感谢[https://github.com/hanximeng/Zepp_API/blob/main/index.php](https://github.com/hanximeng/Zepp_API/blob/main/index.php) 里面提供的aes加密密钥。大家可以去给作者点个star
+```json
+{
+  "STEP_MODE": "random",
+  "MIN_STEP": "18000",
+  "MAX_STEP": "25000"
+}
+```
 
-### 七、同步最新代码
+随机模式不是一大早就直接刷到 18000 到 25000。脚本会按北京时间做比例缩放，越接近 22:00，随机范围越接近完整的 `MIN_STEP` 到 `MAX_STEP`。
 
-- 点击仓库界面上的 `Sync fork`，找不到的话直接Ctrl+F网页查找
-- 然后点击 `Update branch` 或者 `Discard xxx commits`等待同步完成即可，如有其他提示请自行按提示操作。请不要提交 **pull request**
-- 当配置了 `AES_KEY` 之后，因为每个人的仓库里面到会保存一份 `encrypted_tokens.data`，更新代码会被覆盖。为了避免数据丢失，请提前备份，在更新完成后将它重新提交到仓库中，然后再触发workflow。
-- 同步更新后请自己再次仔细阅读README，配置项目修改等请自行对比，更新后因为配置不正确导致无法运行请不要找我
+这样做是为了让步数看起来更像一天慢慢增加，而不是早上突然跳到很高。
 
-## 注意事项
+### fixed：固定模式
 
-1. 默认每天运行6+次，由run.yml中的cron控制，分钟为随机值，执行后自动更新分钟值，随机后可能当前整点二次执行，例如：8:05分执行后，分钟值随机为50，则会在8:50再次执行。
-- 如果配置了 `CRON_HOURS` Variable变量，则脚本将自动判断，例如8:05分执行后，将从小时中剔除8，即8:00-8:59都不会再重复执行，避免随机的步数混乱。
+固定模式适合第一次测试，也适合你希望每次都提交同一个步数的情况：
 
-2. 多账户的数量和密码请一定要对上 不然无法使用!!!
+```json
+{
+  "STEP_MODE": "fixed",
+  "FIXED_STEP": "20000"
+}
+```
 
-3. 启动时间得是UTC时间!
+固定模式下，`MIN_STEP` 和 `MAX_STEP` 不参与本次计算。
 
-4. 如果支付宝没有更新步数，到小米运动->设置->账号->注销账号->清空数据，然后重新登录，重新绑定第三方。建议去开头提到的网站测试账号是否正常
+## 第五步：第一次手动运行
 
-5. 小米运动不会更新步数，只有关联的会同步！！！！！
+进入仓库 `Actions` 页面，选择 `MiMotion`，点击 `Run workflow`。
 
-6. 请各位在使用时Fork[当前仓库](https://github.com/TonyJiangWJ/mimotion/)，防止出现不必要的bug.
+手动运行时有一个 `dry_run` 选项：
 
-7. 请注意，账号不是 [小米账号]，而是 [小米运动/ZeppLife] 的账号。
+- `true`：只登录和计算步数，不提交。
+- `false`：正常执行。
 
-8. 最大步数和最小步数随着时间增长，10点执行时范围为10/22 \* 18000 ~ 10/22 \* 25000：8181 ~ 11363，以此类推，在北京时间22点达到最大值，即22点执行时随机步数的范围为18000-25000之间。要修改这个范围可以修改CONFIG中的MIN_STEP和MAX_STEP。
+第一次建议选 `true`。
 
-9. cron的执行根据github actions的资源进行排队，并不是百分百按指定的时间进行运行，请知悉。
+运行后，进入最新的 workflow 记录，展开 `Run MiMotion` 看日志。
 
-10. 新版本接口有限制，同ip登录过多账号可能会429，请自行测试。
+如果看到类似：
 
-### 查看执行记录
+```text
+DRY_RUN 已开启：会验证登录并计算步数，但不会提交步数
+执行账号总数：1，成功：1，失败：0
+```
 
-- 前往 [Actions](../../actions) 可以查看所有工作流的执行历史
-  - `刷步数 #41: Scheduled` 代表是定时任务触发，`刷步数 #33: Manually run by xxx` 代表手动触发
-- 点击其中一条记录，可以查看执行详情，这里以 `刷步数` 为例：
-  - 详情界面 `Jobs` 可以查看到一个 `build` ，点击它查看执行步骤
-  - 执行步骤中主要关注 `开始` ，点击 `开始` 展开详情
-  - 展开后便可以查看到执行日志，如果执行成功，则会显示每个账号当前随机的步数是多少
-  - 如果执行失败，则需要根据实际情况分析具体失败原因
-- 对于随机Cron的工作流 `Random Cron`，它会在 `刷步数` 执行成功后触发，执行后会更新cron表达式创建随机的分钟值，然后提交到git仓库。这一步失败的主要原因有：
-  - `PAT` Secret变量，也就是个人token设置的不正确
-  - `CRON_HOURS` Variable变量设置的不正确，需要逗号分隔的小时字符串例如：`1,3,4,5,6,7` 。不要添加奇奇怪怪的东西
-  - 其他请见执行日志
-- 随机Cron运行完毕后可以查看 `cron_change_time` 文件的内容，记录了触发方式、当前触发时间、cron表达式信息、下一次定时触发时间等信息，示例如下：
-  ```log
-  trigger by: workflow_run
-  current system time:
-  UTC: 23-06-03 12:56:53
-  北京时间: 23-06-03 20:56:53
-  current cron:
-  UTC时间: '48 1,4,7,10,12,14 * * *'
-  北京时间: '48 9,12,15,18,20,22 * * *'
-  next cron:
-  UTC时间: '37 1,4,7,10,12,14 * * *'
-  北京时间: '37 9,12,15,18,20,22 * * *'
-  next exec time: UTC(14:37) 北京时间(22:37)
-  ```
+说明配置基本正确。
+
+然后你可以把 `CONFIG` 里的 `DRY_RUN` 改成 `False`，再运行一次正式提交。
+
+## 默认每天几点运行
+
+默认定时配置在：
+
+```text
+.github/workflows/run.yml
+```
+
+当前默认 cron 是：
+
+```yaml
+cron: '25 1,7,10,12,14,23 * * *'
+```
+
+GitHub Actions 使用 UTC 时间。换算成北京时间大约是：
+
+```text
+09:25
+15:25
+18:25
+20:25
+22:25
+07:25
+```
+
+不过 `Random Cron` 会在主任务成功后随机修改分钟数，所以实际执行可能不是一直卡在 `25` 分。
+
+如果想改运行小时，可以到：
+
+```text
+Settings -> Secrets and variables -> Actions -> Variables
+```
+
+添加变量：
+
+```text
+CRON_HOURS=1,7,10,12,14,23
+```
+
+这里填的是 UTC 小时，不是北京时间。
+
+## PushPlus 推送
+
+如果你想在运行后收到微信推送，可以去 PushPlus 获取 token，然后写进 `CONFIG`：
+
+```json
+{
+  "PUSH_PLUS_TOKEN": "your_pushplus_token"
+}
+```
+
+如果只想在北京时间 22 点推送：
+
+```json
+{
+  "PUSH_PLUS_HOUR": "22"
+}
+```
+
+不配置 `PUSH_PLUS_TOKEN` 时，不会推送。
+
+## 本地调试
+
+本地调试适合在正式放到 GitHub Actions 前检查配置，尤其是 JSON 格式和多账号数量。
+
+### 1. 安装依赖
+
+建议 Python 3.10 或更高版本。
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. 创建本地配置
+
+复制示例文件：
+
+```bash
+cp config.local.example.json config.local.json
+```
+
+Windows PowerShell：
+
+```powershell
+Copy-Item config.local.example.json config.local.json
+```
+
+`config.local.json` 已经在 `.gitignore` 里，不会被提交。
+
+### 3. 检查配置
+
+```bash
+python main.py --check-config
+```
+
+配置没问题时会显示：
+
+```text
+配置检查通过
+```
+
+### 4. 本地试运行
+
+```bash
+python main.py --dry-run
+```
+
+`--dry-run` 会强制试运行，即使配置里 `DRY_RUN` 是 `False`，也不会真正提交步数。
+
+指定配置文件：
+
+```bash
+python main.py --config config.local.json --dry-run
+```
+
+注意：如果同时存在环境变量 `CONFIG` 和本地配置文件，脚本优先读取环境变量 `CONFIG`。
+
+## 常见问题
+
+### Actions 成功了，但微信步数没变？
+
+这个项目不直接修改微信数据。它提交的是 Zepp Life / 小米运动数据，微信是否更新取决于第三方同步。你可以先检查 Zepp Life 里步数是否变化，再检查微信运动绑定状态。
+
+### 第一次运行提示 token 解密失败？
+
+通常是因为仓库里的 `encrypted_tokens.data` 不是用你的 `AES_KEY` 生成的。第一次遇到可以忽略，成功登录后会重新生成。
+
+### 出现 429 怎么办？
+
+429 多半是请求太频繁。可以这样处理：
+
+- 关闭 `USE_CONCURRENT`。
+- 增大 `SLEEP_GAP`。
+- 减少同一时间运行的账号数量。
+- 过一段时间再手动运行。
+
+### workflow 提交失败？
+
+大概率是 `PAT` 权限不够，重点检查：
+
+- `Contents: Read and write`
+- `Workflows: Read and write`
+- token 是否授权给当前 Fork 后的仓库
+- `PAT` 是否正确保存到了 Repository secrets
+
+### 怎么确认本次用的步数？
+
+日志里会显示：
+
+```text
+步数模式：random，本次范围：xxxx~yyyy
+```
+
+固定模式会显示：
+
+```text
+步数模式：fixed，本次范围：20000~20000
+```
+
+## 文件说明
+
+| 文件 | 作用 |
+| --- | --- |
+| `main.py` | 主入口，负责读取配置、执行账号任务、推送结果 |
+| `util/zepp_helper.py` | Zepp/华米接口请求逻辑 |
+| `util/aes_help.py` | AES 加密和解密 |
+| `requirements.txt` | Python 依赖列表 |
+| `config.local.example.json` | 本地调试配置模板 |
+| `encrypted_tokens.data` | 加密后的 token 缓存 |
+| `.github/workflows/run.yml` | 主定时任务 |
+| `.github/workflows/cron.yml` | 随机修改 cron 的任务 |
+| `cron_convert.sh` | 修改 cron 的 shell 脚本 |
+| `cron_change_time` | 最近一次 cron 修改记录 |
+
+## 参考与致谢
+
+这个项目是在前人工作的基础上继续整理和维护的，核心思路来自社区里多个 mimotion / Zepp Life 刷步项目。感谢这些项目和作者提供的接口思路、参数样例和加密方式参考：
+
+- [TonyJiangWJ/mimotion](https://github.com/TonyJiangWJ/mimotion)
+- [huangshihai/mimotion](https://github.com/huangshihai/mimotion)
+- 已不可访问的 `xunichanghuan/mimotion`
+- [hanximeng/Zepp_API](https://github.com/hanximeng/Zepp_API)
+
+如果这些项目对你有帮助，也可以顺手去原项目点个 star。开源项目能被后来的人继续用下去，很多时候就是靠这种一点点的接力。

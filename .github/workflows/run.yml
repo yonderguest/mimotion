@@ -1,9 +1,18 @@
-name: 刷步数
+name: MiMotion
 
 on:
   schedule:
     - cron: '25 1,7,10,12,14,23 * * *'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only login and calculate steps, do not submit steps'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   build:
@@ -13,29 +22,30 @@ jobs:
       - name: Checkout codes
         uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PAT }} #此处PAT需要申请，教程详见：README
-      - name: Update system and install zsh
-        run: |
-          sudo -E apt-get -qq update
-          sudo -E apt-get install zsh -y
-          
-      - name: 初始化Python
+          token: ${{ secrets.PAT }}
+
+      - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-          
-      - name: 开始
+
+      - name: Run MiMotion
         env:
-            CONFIG: ${{ secrets.CONFIG }}
-            AES_KEY: ${{ secrets.AES_KEY }}
+          CONFIG: ${{ secrets.CONFIG }}
+          AES_KEY: ${{ secrets.AES_KEY }}
+          FORCE_DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          pip3 install requests pytz pycryptodome
+          pip3 install -r requirements.txt
           python3 main.py
 
-      - name: persist tokens
+      - name: Persist encrypted tokens
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
-          git add .
-          git commit -m "persist tokens trigger by ${{ github.event_name }}"
-          git push origin master
+          git add encrypted_tokens.data
+          if git diff --cached --quiet; then
+            echo "No token changes to persist."
+          else
+            git commit -m "persist tokens trigger by ${{ github.event_name }}"
+            git push origin master
+          fi
