@@ -23,6 +23,20 @@ LOCAL_CONFIG_PATH = Path("config.local.json")
 TOKEN_DATA_PATH = Path("encrypted_tokens.data")
 TRUE_VALUES = {"1", "true", "yes", "y", "on"}
 FALSE_VALUES = {"0", "false", "no", "n", "off", ""}
+SIMPLE_ENV_KEYS = {
+    "USER": "ZEPP_USER",
+    "PWD": "ZEPP_PASSWORD",
+    "MIN_STEP": "MIN_STEP",
+    "MAX_STEP": "MAX_STEP",
+    "STEP_MODE": "STEP_MODE",
+    "FIXED_STEP": "FIXED_STEP",
+    "PUSH_PLUS_TOKEN": "PUSH_PLUS_TOKEN",
+    "PUSH_PLUS_HOUR": "PUSH_PLUS_HOUR",
+    "PUSH_PLUS_MAX": "PUSH_PLUS_MAX",
+    "SLEEP_GAP": "SLEEP_GAP",
+    "USE_CONCURRENT": "USE_CONCURRENT",
+    "DRY_RUN": "DRY_RUN",
+}
 
 time_bj = None
 config = {}
@@ -341,6 +355,11 @@ def load_config_from_env_or_file(config_path=None) -> dict:
         except json.JSONDecodeError as err:
             raise ValueError(f"CONFIG 格式不正确：{err}") from err
 
+    simple_config = load_simple_config_from_env()
+    if simple_config:
+        print("未检测到 CONFIG，改用新手模式 Secrets/Variables")
+        return simple_config
+
     local_config_path = Path(config_path) if config_path else LOCAL_CONFIG_PATH
     if local_config_path.exists():
         try:
@@ -350,6 +369,17 @@ def load_config_from_env_or_file(config_path=None) -> dict:
             raise ValueError(f"{local_config_path} 格式不正确：{err}") from err
 
     raise ValueError(f"未配置 CONFIG 环境变量，也未找到 {local_config_path}")
+
+
+def load_simple_config_from_env() -> dict:
+    if not os.environ.get("ZEPP_USER") and not os.environ.get("ZEPP_PASSWORD"):
+        return {}
+    simple_config = {}
+    for config_key, env_key in SIMPLE_ENV_KEYS.items():
+        value = os.environ.get(env_key)
+        if value not in (None, ""):
+            simple_config[config_key] = value
+    return simple_config
 
 
 def validate_config(_config: dict):

@@ -5,14 +5,18 @@ on:
     - cron: '25 1,7,10,12,14,23 * * *'
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Only login and calculate steps, do not submit steps'
+      mode:
+        description: 'Run mode'
         required: false
-        default: 'false'
+        default: 'dry_run'
         type: choice
         options:
-          - 'false'
-          - 'true'
+          - check_config
+          - dry_run
+          - run
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -21,24 +25,71 @@ jobs:
     steps:
       - name: Checkout codes
         uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.PAT }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
-      - name: Run MiMotion
+      - name: Random delay for scheduled runs
+        if: github.event_name == 'schedule'
+        run: |
+          max_minutes="${{ vars.RANDOM_DELAY_MINUTES }}"
+          if [ -z "$max_minutes" ]; then
+            max_minutes=50
+          fi
+          if [ "$max_minutes" -gt 0 ]; then
+            delay_seconds=$(( RANDOM % (max_minutes * 60 + 1) ))
+            echo "Scheduled run will wait ${delay_seconds}s before starting."
+            sleep "$delay_seconds"
+          else
+            echo "Random delay disabled."
+          fi
+
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt
+
+      - name: Check config
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'check_config'
         env:
           CONFIG: ${{ secrets.CONFIG }}
           AES_KEY: ${{ secrets.AES_KEY }}
-          FORCE_DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          pip3 install -r requirements.txt
-          python3 main.py
+          ZEPP_USER: ${{ secrets.ZEPP_USER }}
+          ZEPP_PASSWORD: ${{ secrets.ZEPP_PASSWORD }}
+          MIN_STEP: ${{ vars.MIN_STEP }}
+          MAX_STEP: ${{ vars.MAX_STEP }}
+          STEP_MODE: ${{ vars.STEP_MODE }}
+          FIXED_STEP: ${{ vars.FIXED_STEP }}
+          PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
+          PUSH_PLUS_HOUR: ${{ vars.PUSH_PLUS_HOUR }}
+          PUSH_PLUS_MAX: ${{ vars.PUSH_PLUS_MAX }}
+          SLEEP_GAP: ${{ vars.SLEEP_GAP }}
+          USE_CONCURRENT: ${{ vars.USE_CONCURRENT }}
+          DRY_RUN: ${{ vars.DRY_RUN }}
+        run: python3 main.py --check-config
+
+      - name: Run MiMotion
+        if: github.event_name == 'schedule' || inputs.mode != 'check_config'
+        env:
+          CONFIG: ${{ secrets.CONFIG }}
+          AES_KEY: ${{ secrets.AES_KEY }}
+          ZEPP_USER: ${{ secrets.ZEPP_USER }}
+          ZEPP_PASSWORD: ${{ secrets.ZEPP_PASSWORD }}
+          MIN_STEP: ${{ vars.MIN_STEP }}
+          MAX_STEP: ${{ vars.MAX_STEP }}
+          STEP_MODE: ${{ vars.STEP_MODE }}
+          FIXED_STEP: ${{ vars.FIXED_STEP }}
+          PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
+          PUSH_PLUS_HOUR: ${{ vars.PUSH_PLUS_HOUR }}
+          PUSH_PLUS_MAX: ${{ vars.PUSH_PLUS_MAX }}
+          SLEEP_GAP: ${{ vars.SLEEP_GAP }}
+          USE_CONCURRENT: ${{ vars.USE_CONCURRENT }}
+          DRY_RUN: ${{ vars.DRY_RUN }}
+          FORCE_DRY_RUN: ${{ inputs.mode == 'dry_run' && 'true' || '' }}
+        run: python3 main.py
 
       - name: Persist encrypted tokens
+        if: github.event_name == 'schedule' || inputs.mode == 'run'
         run: |
           git config user.name github-actions
           git config user.email github-actions@users.noreply.github.com
@@ -46,6 +97,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No token changes to persist."
           else
-            git commit -m "persist tokens trigger by ${{ github.event_name }}"
-            git push origin master
+            git commit -m "persist encrypted tokens"
+            git push
           fi

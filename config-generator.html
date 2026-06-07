@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mimotion 配置生成器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1f2328;
+      --muted: #656d76;
+      --line: #d8dee4;
+      --accent: #0969da;
+      --accent-dark: #0757b8;
+      --danger: #b42318;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    .wrap {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    .hero {
+      padding: 32px 0 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+    }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+    p {
+      margin: 0 0 12px;
+    }
+    main {
+      padding: 24px 0 48px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+      gap: 20px;
+      align-items: start;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input,
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 15px;
+      background: #fff;
+    }
+    input[type="checkbox"] {
+      width: auto;
+      min-height: auto;
+      margin-right: 8px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .notice {
+      border-left: 4px solid var(--accent);
+      background: #eef6ff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+    .warn {
+      border-left-color: var(--danger);
+      background: #fff1f0;
+    }
+    button,
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button:hover,
+    .link-button:hover {
+      background: var(--accent-dark);
+    }
+    button.secondary {
+      background: #eaeef2;
+      color: var(--text);
+    }
+    button.secondary:hover {
+      background: #d8dee4;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f6f8fa;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 120px;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    @media (max-width: 860px) {
+      .grid,
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap hero">
+      <h1>mimotion 配置生成器</h1>
+      <p>在这个页面填信息，然后把生成的内容复制到 GitHub Secrets / Variables。页面不会上传你的账号密码，所有内容只在当前浏览器里生成。</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section>
+        <h2>填写信息</h2>
+        <div class="notice warn">
+          不要把真实账号密码提交到仓库。推荐把账号密码放在 GitHub Secrets 里。
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="user">Zepp Life 账号</label>
+            <input id="user" autocomplete="username" placeholder="邮箱或手机号">
+          </div>
+          <div class="field">
+            <label for="password">Zepp Life 密码</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="密码">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="minStep">随机最小步数</label>
+            <input id="minStep" type="number" min="0" value="18000">
+          </div>
+          <div class="field">
+            <label for="maxStep">随机最大步数</label>
+            <input id="maxStep" type="number" min="0" value="25000">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="stepMode">步数模式</label>
+            <select id="stepMode">
+              <option value="random">random：按时间随机</option>
+              <option value="fixed">fixed：固定步数</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fixedStep">固定步数</label>
+            <input id="fixedStep" type="number" min="0" placeholder="例如 20000">
+            <div class="hint">只有 fixed 模式会用到。</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="sleepGap">多账号间隔秒数</label>
+            <input id="sleepGap" type="number" min="0" value="5">
+          </div>
+          <div class="field">
+            <label for="pushPlusHour">PushPlus 推送整点</label>
+            <input id="pushPlusHour" type="number" min="0" max="23" placeholder="不限制就留空">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="pushPlusToken">PushPlus Token</label>
+          <input id="pushPlusToken" placeholder="不需要推送就留空">
+        </div>
+
+        <div class="field">
+          <label for="repo">你的仓库地址</label>
+          <input id="repo" placeholder="https://github.com/你的用户名/mimotion">
+          <div class="hint">填了以后，下方会生成 GitHub 设置入口。</div>
+        </div>
+
+        <div class="field">
+          <label><input id="dryRun" type="checkbox" checked>第一次先试运行，不真正提交步数</label>
+          <label><input id="concurrent" type="checkbox">多账号并发执行</label>
+        </div>
+
+        <div class="actions">
+          <button id="generate">生成配置</button>
+          <button id="aes" class="secondary">生成 AES_KEY</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>复制到 GitHub</h2>
+        <div id="links" class="notice">
+          填写仓库地址后，这里会显示快捷入口。
+        </div>
+
+        <h3>新手模式：Secrets</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>值</th>
+            </tr>
+          </thead>
+          <tbody id="secrets"></tbody>
+        </table>
+
+        <h3>新手模式：Variables</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>值</th>
+            </tr>
+          </thead>
+          <tbody id="variables"></tbody>
+        </table>
+
+        <h3>高级模式：CONFIG</h3>
+        <p class="hint">如果你愿意使用 JSON，也可以只把下面这一整段保存为 Secret：<code>CONFIG</code>。</p>
+        <pre id="configJson"></pre>
+        <div class="actions">
+          <button id="copyConfig">复制 CONFIG</button>
+          <button id="copySimple" class="secondary">复制新手模式清单</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function randomKey() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+      let key = "";
+      crypto.getRandomValues(new Uint32Array(16)).forEach((n) => {
+        key += chars[n % chars.length];
+      });
+      return key;
+    }
+
+    function value(id) {
+      return $(id).value.trim();
+    }
+
+    function row(name, val) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><code>${name}</code></td><td><code>${escapeHtml(val || "(留空)")}</code></td>`;
+      return tr;
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, (s) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[s]));
+    }
+
+    function build() {
+      const stepMode = value("stepMode") || "random";
+      const config = {
+        USER: value("user"),
+        PWD: value("password"),
+        MIN_STEP: value("minStep") || "18000",
+        MAX_STEP: value("maxStep") || "25000",
+        STEP_MODE: stepMode,
+        PUSH_PLUS_TOKEN: value("pushPlusToken"),
+        PUSH_PLUS_HOUR: value("pushPlusHour"),
+        PUSH_PLUS_MAX: "30",
+        SLEEP_GAP: value("sleepGap") || "5",
+        USE_CONCURRENT: $("concurrent").checked ? "True" : "False",
+        DRY_RUN: $("dryRun").checked ? "True" : "False"
+      };
+      if (stepMode === "fixed") {
+        config.FIXED_STEP = value("fixedStep");
+      }
+
+      $("configJson").textContent = JSON.stringify(config, null, 2);
+
+      const aesKey = window.currentAesKey || randomKey();
+      window.currentAesKey = aesKey;
+
+      const secrets = [
+        ["ZEPP_USER", config.USER],
+        ["ZEPP_PASSWORD", config.PWD],
+        ["AES_KEY", aesKey],
+        ["PUSH_PLUS_TOKEN", config.PUSH_PLUS_TOKEN]
+      ];
+      const variables = [
+        ["MIN_STEP", config.MIN_STEP],
+        ["MAX_STEP", config.MAX_STEP],
+        ["STEP_MODE", config.STEP_MODE],
+        ["FIXED_STEP", config.FIXED_STEP || ""],
+        ["PUSH_PLUS_HOUR", config.PUSH_PLUS_HOUR],
+        ["PUSH_PLUS_MAX", config.PUSH_PLUS_MAX],
+        ["SLEEP_GAP", config.SLEEP_GAP],
+        ["USE_CONCURRENT", config.USE_CONCURRENT],
+        ["DRY_RUN", config.DRY_RUN],
+        ["RANDOM_DELAY_MINUTES", "50"]
+      ];
+
+      $("secrets").replaceChildren(...secrets.map(([name, val]) => row(name, val)));
+      $("variables").replaceChildren(...variables.map(([name, val]) => row(name, val)));
+      updateLinks();
+    }
+
+    function updateLinks() {
+      const repo = value("repo").replace(/\/$/, "");
+      const match = repo.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)$/);
+      if (!match) {
+        $("links").innerHTML = "填写仓库地址后，这里会显示快捷入口。";
+        return;
+      }
+      const base = `https://github.com/${match[1]}/${match[2]}`;
+      $("links").innerHTML = `
+        <p>快捷入口：</p>
+        <p><a class="link-button" href="${base}/settings/secrets/actions" target="_blank" rel="noreferrer">打开 Secrets 设置</a></p>
+        <p><a class="link-button" href="${base}/settings/variables/actions" target="_blank" rel="noreferrer">打开 Variables 设置</a></p>
+        <p><a class="link-button" href="${base}/actions/workflows/run.yml" target="_blank" rel="noreferrer">打开 MiMotion workflow</a></p>
+      `;
+    }
+
+    async function copy(text) {
+      await navigator.clipboard.writeText(text);
+      alert("已复制");
+    }
+
+    $("generate").addEventListener("click", build);
+    $("aes").addEventListener("click", () => {
+      window.currentAesKey = randomKey();
+      build();
+    });
+    $("copyConfig").addEventListener("click", () => copy($("configJson").textContent));
+    $("copySimple").addEventListener("click", () => {
+      const lines = [];
+      document.querySelectorAll("#secrets tr, #variables tr").forEach((tr) => {
+        const cells = tr.querySelectorAll("td");
+        lines.push(`${cells[0].textContent}=${cells[1].textContent}`);
+      });
+      copy(lines.join("\n"));
+    });
+    $("repo").addEventListener("input", updateLinks);
+    build();
+  </script>
+</body>
+</html>
